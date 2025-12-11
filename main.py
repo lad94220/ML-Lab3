@@ -23,6 +23,7 @@ if __name__ == '__main__':
   parser.add_argument('--decay', default=1e-4, type=float, help='weight decay for training the model')
   parser.add_argument('--batch_size', default=256, type=int, help='training batch size')
   parser.add_argument('--epochs', default=100, type=int, help='number of epochs to train')
+  parser.add_argument('--noise', default=0.0, type=float, help='noise level for noisy datasets (0, 10, 30, 50)')
 
   # paramaters
   args = parser.parse_args()
@@ -33,14 +34,34 @@ if __name__ == '__main__':
   set_all_seeds(SEED)
   # dataloader
   num_targets = 1
+  noise = args.noise
+
   if args.dataset == 'bike_sharing':
-    trX, trY, teX, teY = bike_sharing()
-    num_targets = trY.shape[1]
+      if noise in [10, 30, 50]:
+          path = f'advanced-data/{noise}/bike_sharing_noisy.npz'
+          trX, trY, teX, teY = bike_sharing(path=path)
+      else:
+          trX, trY, teX, teY = bike_sharing()
+      num_targets = trY.shape[1]
+
   elif args.dataset == 'protein':
-    trX, trY, teX, teY = protein_data()
-    num_targets = trY.shape[1]
+      if noise in [10, 30, 50]:
+          path = f'advanced-data/{noise}/protein_noisy.npz'
+          trX, trY, teX, teY = protein_data(path=path)
+      else:
+          trX, trY, teX, teY = protein_data()
+      num_targets = trY.shape[1]
+
   elif args.dataset == 'sine':
-    trX, trY, teX, teY = sine_data(path='sine-data/sine_noisy_scale5_noise0.5.npz', split_data=True)
+      if noise in [10, 30, 50]:
+          # noise folder maps to noise level: 10 → 0.1, 30 → 0.3, 50 → 0.5
+          noise_level = noise / 100.0
+          path = f'advanced-data/{int(noise)}/sine_noisy_scale5_noise{noise_level}.npz'
+
+          trX, trY, teX, teY = sine_data(path=path, noise_level=noise_level, split_data=True)
+      else:
+          trX, trY, teX, teY = sine_data(split_data=True)
+
   print(trX.shape)
   print(teX.shape)
   tr_pair_data = pair_dataset(trX, trY)
@@ -65,6 +86,8 @@ if __name__ == '__main__':
   
   print ('Start Training')
   print ('-'*30)
+  total_start_time = time.time()
+
   paraset = [0.1, 0.5, 0.9]
   if args.loss in ['Huber', 'focal-MAE', 'focal-MSE']:
     paraset = [0.25,1,4]
@@ -180,7 +203,9 @@ if __name__ == '__main__':
             optimizer.step()
         scheduler.step()
         epoch_loss /= (idx+1)
-        print('Epoch=%s, time=%.4f'%(epoch, time.time() - start_time))
+        epoch_time = time.time() - start_time
+        print('Epoch=%s, time=%.4f'%(epoch, epoch_time))
+
         preds = np.concatenate(pred, axis=0)
         truths = np.concatenate(truth, axis=0)
         MAE, RMSE, pearson, spearman = [], [], [], []
@@ -235,6 +260,7 @@ if __name__ == '__main__':
             'fold': part,
             'parameter': para,
             'epoch': epoch,
+            'epoch_time': epoch_time,
             'test_MAE': test_mae,
             'test_RMSE': test_rmse,
             'test_Pearson': test_pearson,
@@ -254,6 +280,10 @@ if __name__ == '__main__':
 
     part += 1 
 
+  total_end_time = time.time()
+  total_time = total_end_time - total_start_time
+  print(f"\nTotal training time: {total_time:.2f} seconds")
+  
   # Save final results to CSV
   if results_list:
     with open(results_file, 'w', newline='') as f:
@@ -264,10 +294,29 @@ if __name__ == '__main__':
     print(f'Final results saved to: {results_file}')
     print('='*50)
   
+  # Save final results to CSV (with total_time column)
+  if results_list:
+    # Thêm cột total_time vào header
+    fieldnames = ['fold', 'parameter', 'test_MAE', 'test_RMSE', 'test_Pearson', 'test_Spearman', 'total_time']
+    with open(results_file, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        # thêm cột total_time rỗng cho từng dòng kết quả fold
+        for row in results_list:
+            row['total_time'] = ""
+        writer.writerows(results_list)
+
+        # ghi dòng cuối có thời gian tổng
+        writer.writerow({'fold': '', 'parameter': '', 'test_MAE': '','test_RMSE': '', 'test_Pearson': '', 'test_Spearman': '','total_time': total_time})
+
+    print('\n' + '='*50)
+    print(f'Final results saved to: {results_file}')
+    print('='*50)
+  
   # Save epoch-by-epoch results to CSV
   if epoch_results_list:
     with open(epoch_results_file, 'w', newline='') as f:
-      writer = csv.DictWriter(f, fieldnames=['fold', 'parameter', 'epoch', 'test_MAE', 'test_RMSE', 'test_Pearson', 'test_Spearman'])
+      writer = csv.DictWriter(f, fieldnames=['fold', 'parameter', 'epoch', 'epoch_time', 'test_MAE', 'test_RMSE', 'test_Pearson', 'test_Spearman'])
       writer.writeheader()
       writer.writerows(epoch_results_list)
     print(f'Epoch-by-epoch results saved to: {epoch_results_file}')

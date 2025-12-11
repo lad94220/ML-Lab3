@@ -29,7 +29,7 @@ class pair_dataset(torch.utils.data.Dataset):
     return self.X[idx], self.Y[idx]
 
 
-def bike_sharing(path='./data/50/bike_sharing_noisy.npz', std_flag=True, y_std_flag=False):
+def bike_sharing(path='./data/bike_sharing.npz', std_flag=True, y_std_flag=False):
   try:
     dat = np.load(path)
     trX = dat['trX']
@@ -85,7 +85,7 @@ def bike_sharing(path='./data/50/bike_sharing_noisy.npz', std_flag=True, y_std_f
   return trX, trY, teX, teY
 
 
-def protein_data(path='./advanced-data/50/protein_noisy.npz', std_flag=True, y_std_flag=False, target_column='RMSD'):
+def protein_data(path='./data/protein.csv', std_flag=True, y_std_flag=False, target_column='RMSD'):
   """
   Load protein dataset from a cached NPZ file or process from CSV.
 
@@ -148,7 +148,7 @@ def protein_data(path='./advanced-data/50/protein_noisy.npz', std_flag=True, y_s
   return trX, trY, teX, teY
 
 
-def sine_data(path='data/sine_noisy_scale5_noise0.5.npz', n_samples=700, scale=1.0, noise_level=0.1, test_size=0.2, random_state=123, split_data=True, force_regenerate=False):
+def sine_data(path='data/sine.npz', n_samples=700, scale=1.0, noise_level=0.1, test_size=0.2, random_state=123, split_data=True, force_regenerate=False):
   """
   Generates or loads a synthetic sine wave dataset with noise.
 
