@@ -1,0 +1,17 @@
+fold,parameter,test_MAE,test_RMSE,test_Pearson,test_Spearman,total_time
+0,0.1,nan,nan,nan,nan,
+0,1,nan,nan,nan,nan,
+0,10,nan,nan,nan,nan,
+1,0.1,nan,nan,nan,nan,
+1,1,nan,nan,nan,nan,
+1,10,nan,nan,nan,nan,
+2,0.1,nan,nan,nan,nan,
+2,1,nan,nan,nan,nan,
+2,10,nan,nan,nan,nan,
+3,0.1,nan,nan,nan,nan,
+3,1,nan,nan,nan,nan,
+3,10,nan,nan,nan,nan,
+4,0.1,nan,nan,nan,nan,
+4,1,nan,nan,nan,nan,
+4,10,nan,nan,nan,nan,
+,,,,,,433.62457370758057
