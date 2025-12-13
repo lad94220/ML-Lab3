@@ -266,8 +266,13 @@ if __name__ == '__main__':
             'test_Pearson': test_pearson,
             'test_Spearman': test_spearman
         })
-        
-      # Store final results for this fold/parameter
+      save_dir = 'final_models'
+      if not os.path.exists(save_dir):
+          os.makedirs(save_dir)
+      
+      save_path = os.path.join(save_dir, f'final_{args.dataset}_{args.loss}_fold{part}_para{para}.pth')
+      torch.save(model.state_dict(), save_path)
+      print(f'Saved final model to: {save_path}')
       results_list.append({
           'fold': part,
           'parameter': para,
