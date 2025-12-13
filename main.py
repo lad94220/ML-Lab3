@@ -1,3 +1,4 @@
+import pickle
 import time
 from loss import *
 from models import MLP
@@ -83,7 +84,10 @@ if __name__ == '__main__':
   timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
   results_file = f'results_{args.dataset}_{args.loss}_{timestamp}.csv'
   epoch_results_file = f'epoch_results_{args.dataset}_{args.loss}_{timestamp}.csv'
-  
+
+  best_global_val_metric = float('inf')
+  final_best_model_path = f'FINAL_DEPLOYMENT_MODEL_{args.dataset}_{args.loss}_{timestamp}.pth' 
+
   print ('Start Training')
   print ('-'*30)
   total_start_time = time.time()
@@ -147,6 +151,8 @@ if __name__ == '__main__':
 
 
       print('para=%s, part=%s'%(para, part))
+      local_best_val_metric = float('inf')
+      local_best_model_state = None
       for epoch in range(epochs): # could customize the running epochs
         epoch_loss = 0
         pred = []
@@ -234,8 +240,12 @@ if __name__ == '__main__':
           RMSE.append(((pred-truth)**2).mean()**0.5)
           pearson.append(np.corrcoef(truth, pred, rowvar=False)[0,1])
           spearman.append(stats.spearmanr(truth, pred).statistic)
+        valid_mae = np.mean(MAE)
         print('valid_MAE=%.4f, valid_RMSE=%.4f, valid_Pearson=%.4f, valid_Spearman=%.4f'%(np.mean(MAE), np.mean(RMSE), np.mean(pearson), np.mean(spearman)))
-
+        if valid_mae < local_best_val_metric:
+          local_best_val_metric = valid_mae
+          # Tạm lưu trạng thái mô hình tốt nhất (state_dict) của fold/para này
+          local_best_model_state = model.state_dict()
         pred = []
         truth = [] 
         for idx, data in enumerate(testloader):
@@ -309,7 +319,7 @@ if __name__ == '__main__':
             'test_Pearson': test_pearson,
             'test_Spearman': test_spearman
         })
-        
+
       save_dir = 'final_models'
       if not os.path.exists(save_dir):
           os.makedirs(save_dir)
@@ -327,6 +337,29 @@ if __name__ == '__main__':
 
       torch.save(model, save_path)
       print(f'Saved model to: {save_path}')
+      
+      if local_best_val_metric < best_global_val_metric:
+        best_global_val_metric = local_best_val_metric
+                
+        # 1. LƯU DƯỚI DẠNG .pth (STATE DICT)
+        torch.save(local_best_model_state, final_best_model_path)
+                
+        # 2. LƯU DƯỚI DẠNG .pkl (TOÀN BỘ ĐỐI TƯỢNG MODEL VÀ STATE)
+        pkl_save_path = final_best_model_path.replace('.pth', '.pkl')
+                
+        # Lấy mô hình có trạng thái tốt nhất
+                # Lưu ý: model.hidden_sizes phải khớp với cấu trúc bạn đã khởi tạo
+        temp_model = MLP(input_dim=trX.shape[-1], hidden_sizes=model.hidden_sizes, num_classes=num_targets)
+        temp_model.load_state_dict(local_best_model_state)
+                
+                # Lưu toàn bộ đối tượng mô hình bằng pickle
+        with open(pkl_save_path, 'wb') as f:
+          pickle.dump(temp_model, f)
+                
+          print(f"\n*** MÔ HÌNH TỐT NHẤT TOÀN CỤC ĐƯỢC CẬP NHẬT (Fold {part}, Para {para}): Valid MAE={best_global_val_metric:.4f}.")
+          print(f"    Đã lưu file PT: {final_best_model_path}")
+          print(f"    Đã lưu file PKL: {pkl_save_path} ***\n")
+      
       results_list.append({
           'fold': part,
           'parameter': para,
