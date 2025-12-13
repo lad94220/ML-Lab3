@@ -255,6 +255,49 @@ if __name__ == '__main__':
         test_mae, test_rmse, test_pearson, test_spearman = np.mean(MAE), np.mean(RMSE), np.mean(pearson), np.mean(spearman)
         print('test_MAE=%.4f, test_RMSE=%.4f, test_Pearson=%.4f, test_Spearman=%.4f'%(test_mae, test_rmse, test_pearson, test_spearman))
         
+        # 1. Tạo thư mục
+        save_pred_dir = 'all_predictions_logs'
+        if not os.path.exists(save_pred_dir):
+            os.makedirs(save_pred_dir)
+        
+        # 2. Tạo DataFrame cho Epoch hiện tại
+        df_epoch = pd.DataFrame()
+        
+        # Thêm cột Epoch để sau này filter trên App
+        # (Ví dụ: df[df['Epoch'] == 50] để lấy dữ liệu epoch 50)
+        df_epoch['Epoch'] = [epoch] * len(truths) 
+        
+        for t in range(num_targets):
+            df_epoch[f'Truth_{t}'] = truths[:, t]
+            df_epoch[f'Prediction_{t}'] = preds[:, t]
+        
+        # 3. Định nghĩa tên file (Duy nhất cho mỗi Fold và Parameter)
+        pred_filename = f'all_preds_{args.dataset}_{args.loss}_fold{part}_para{para}.csv'
+        pred_path = os.path.join(save_pred_dir, pred_filename)
+        
+        # 4. Ghi file (Logic: Nếu epoch 0 thì tạo mới, epoch > 0 thì nối đuôi)
+        if epoch == 0:
+            df_epoch.to_csv(pred_path, index=False, mode='w') # mode='w': Write new
+        else:
+            df_epoch.to_csv(pred_path, index=False, mode='a', header=False) # mode='a': Append, không ghi lại header
+
+        if epoch == epochs - 1:
+            save_pred_dir = 'prediction_logs'
+            if not os.path.exists(save_pred_dir):
+                os.makedirs(save_pred_dir)
+            
+            df_pred = pd.DataFrame()
+            
+            for t in range(num_targets):
+                df_pred[f'Truth_{t}'] = truths[:, t]
+                df_pred[f'Prediction_{t}'] = preds[:, t]
+            
+            pred_filename = f'preds_{args.dataset}_{args.loss}_fold{part}_para{para}.csv'
+            pred_path = os.path.join(save_pred_dir, pred_filename)
+            
+            df_pred.to_csv(pred_path, index=False)
+            print(f'Saved predictions to: {pred_path}')  
+
         # Store epoch results
         epoch_results_list.append({
             'fold': part,
@@ -266,6 +309,7 @@ if __name__ == '__main__':
             'test_Pearson': test_pearson,
             'test_Spearman': test_spearman
         })
+        
       save_dir = 'final_models'
       if not os.path.exists(save_dir):
           os.makedirs(save_dir)
