@@ -273,6 +273,16 @@ if __name__ == '__main__':
       save_path = os.path.join(save_dir, f'final_{args.dataset}_{args.loss}_fold{part}_para{para}.pth')
       torch.save(model.state_dict(), save_path)
       print(f'Saved final model to: {save_path}')
+
+      save_dir = 'final_models_pkl'
+      if not os.path.exists(save_dir):
+          os.makedirs(save_dir)
+
+      model_filename = f'model_{args.dataset}_{args.loss}_fold{part}_para{para}.pkl'
+      save_path = os.path.join(save_dir, model_filename)
+
+      torch.save(model, save_path)
+      print(f'Saved model to: {save_path}')
       results_list.append({
           'fold': part,
           'parameter': para,
