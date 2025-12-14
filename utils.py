@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
-
+import pickle
 
 def set_all_seeds(SEED):
     # REPRODUCIBILITY
@@ -129,6 +129,8 @@ def protein_data(path='./data/protein.csv', std_flag=True, y_std_flag=False, tar
       scaler = StandardScaler()
       X = scaler.fit_transform(X)
 
+    with open('data/protein_scaler.pkl', 'wb') as f:
+        pickle.dump(scaler, f)
     # Split into train and test (80/20)
     trX, teX, trY, teY = train_test_split(X, y, test_size=0.2, random_state=123)
     print(f'Train samples: {trX.shape[0]}, Test samples: {teX.shape[0]}')
