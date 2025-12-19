@@ -1,0 +1,51 @@
+# How to Run the App Locally
+
+## Prerequisites
+- Python 3.7 or higher
+- pip (Python package installer)
+- Node.js 20.19.6 or higher
+
+## Installation Steps
+
+1. **Clone or navigate to the project directory**
+   ```bash
+   cd d:\HCMUS_COURSES\ML\Lab3\refactor
+   ```
+
+2. **Navigate to the app folder**
+   ```bash
+   cd app
+   ```
+
+3. **Install required dependencies**
+   ```bash
+    pip install -r requirements.txt
+   ```
+
+4. **Run the server**
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+5. **Navigate to client**
+  ```bash
+  cd ../client
+  ```
+6. **Install dependencies**
+  ```bash
+  pnpm i
+  ```
+
+7. **Run client**
+  ```bash
+  pnpm dev
+  ```
+
+## Troubleshooting
+- If you encounter missing dependencies, ensure `requirements.txt` is present and run `pip install -r requirements.txt`
+- Check that you're using the correct Python version with `python --version`
+- Make sure the virtual environment is activated before running the app
+
+## Additional Notes
+- Update the specific run command based on your application's entry point
+- Configure any necessary environment variables before running
