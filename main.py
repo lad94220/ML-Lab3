@@ -223,10 +223,10 @@ if __name__ == '__main__':
           spearman.append(stats.spearmanr(truth, pred).statistic)
         print('Epoch=%s, train_loss=%.4f, train_MAE=%.4f, train_RMSE=%.4f, train_Pearson=%.4f, train_Spearman=%.4f, lr=%.4f'%(epoch, epoch_loss, np.mean(MAE), np.mean(RMSE), np.mean(pearson), np.mean(spearman), scheduler.get_last_lr()[0]))      
         
-        pred = []
-        truth = [] 
+        pred = [] # reset pred
+        truth = [] # reset truth
         model.eval()
-        for idx, data in enumerate(validloader):
+        for idx, data in enumerate(validloader): # validation
             te_X, te_Y = data[0].to(device), data[1].to(device)
             pred_Y, feat = model(te_X)
             pred.append(pred_Y.cpu().detach().numpy())
@@ -244,10 +244,10 @@ if __name__ == '__main__':
         print('valid_MAE=%.4f, valid_RMSE=%.4f, valid_Pearson=%.4f, valid_Spearman=%.4f'%(np.mean(MAE), np.mean(RMSE), np.mean(pearson), np.mean(spearman)))
         if valid_mae < local_best_val_metric:
           local_best_val_metric = valid_mae
-          # Tạm lưu trạng thái mô hình tốt nhất (state_dict) của fold/para này
+          # Save the best model state for this fold and parameter
           local_best_model_state = model.state_dict()
-        pred = []
-        truth = [] 
+        pred = [] # reset pred
+        truth = [] # reset truth
         for idx, data in enumerate(testloader):
             te_X, te_Y = data[0].to(device), data[1].to(device)
             pred_Y, feat = model(te_X)
@@ -265,27 +265,26 @@ if __name__ == '__main__':
         test_mae, test_rmse, test_pearson, test_spearman = np.mean(MAE), np.mean(RMSE), np.mean(pearson), np.mean(spearman)
         print('test_MAE=%.4f, test_RMSE=%.4f, test_Pearson=%.4f, test_Spearman=%.4f'%(test_mae, test_rmse, test_pearson, test_spearman))
         
-        # 1. Tạo thư mục
-        save_pred_dir = 'all_predictions_logs'
+        # Save predictions for this epoch
+        save_pred_dir = 'all_predictions_logs' # Directory to save all epoch predictions
         if not os.path.exists(save_pred_dir):
             os.makedirs(save_pred_dir)
         
-        # 2. Tạo DataFrame cho Epoch hiện tại
+        # Create DataFrame for this epoch's predictions
         df_epoch = pd.DataFrame()
         
-        # Thêm cột Epoch để sau này filter trên App
-        # (Ví dụ: df[df['Epoch'] == 50] để lấy dữ liệu epoch 50)
+        # Add Epoch column for filtering in the App 
         df_epoch['Epoch'] = [epoch] * len(truths) 
         
         for t in range(num_targets):
             df_epoch[f'Truth_{t}'] = truths[:, t]
             df_epoch[f'Prediction_{t}'] = preds[:, t]
         
-        # 3. Định nghĩa tên file (Duy nhất cho mỗi Fold và Parameter)
+        # Construct filename
         pred_filename = f'all_preds_{args.dataset}_{args.loss}_fold{part}_para{para}.csv'
         pred_path = os.path.join(save_pred_dir, pred_filename)
         
-        # 4. Ghi file (Logic: Nếu epoch 0 thì tạo mới, epoch > 0 thì nối đuôi)
+        # Append or write new based on epoch
         if epoch == 0:
             df_epoch.to_csv(pred_path, index=False, mode='w') # mode='w': Write new
         else:
@@ -341,24 +340,23 @@ if __name__ == '__main__':
       if local_best_val_metric < best_global_val_metric:
         best_global_val_metric = local_best_val_metric
                 
-        # 1. LƯU DƯỚI DẠNG .pth (STATE DICT)
+        # Save the best model state globally pth
         torch.save(local_best_model_state, final_best_model_path)
                 
-        # 2. LƯU DƯỚI DẠNG .pkl (TOÀN BỘ ĐỐI TƯỢNG MODEL VÀ STATE)
+        # Save as .pkl (entire model object and state)
         pkl_save_path = final_best_model_path.replace('.pth', '.pkl')
                 
-        # Lấy mô hình có trạng thái tốt nhất
-                # Lưu ý: model.hidden_sizes phải khớp với cấu trúc bạn đã khởi tạo
+        # Get the model with the best state
         temp_model = MLP(input_dim=trX.shape[-1], hidden_sizes=model.hidden_sizes, num_classes=num_targets)
         temp_model.load_state_dict(local_best_model_state)
                 
-                # Lưu toàn bộ đối tượng mô hình bằng pickle
+        # Save the entire model object as .pkl
         with open(pkl_save_path, 'wb') as f:
           pickle.dump(temp_model, f)
                 
-          print(f"\n*** MÔ HÌNH TỐT NHẤT TOÀN CỤC ĐƯỢC CẬP NHẬT (Fold {part}, Para {para}): Valid MAE={best_global_val_metric:.4f}.")
-          print(f"    Đã lưu file PT: {final_best_model_path}")
-          print(f"    Đã lưu file PKL: {pkl_save_path} ***\n")
+          print(f"\n*** BEST GLOBAL MODEL UPDATED (Fold {part}, Para {para}): Valid MAE={best_global_val_metric:.4f}.")
+          print(f"    Saved .pth file: {final_best_model_path}")
+          print(f"    Saved .pkl file: {pkl_save_path} ***\n")
       
       results_list.append({
           'fold': part,
@@ -393,12 +391,12 @@ if __name__ == '__main__':
     with open(results_file, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        # thêm cột total_time rỗng cho từng dòng kết quả fold
+        # Write rows with empty total_time
         for row in results_list:
             row['total_time'] = ""
         writer.writerows(results_list)
 
-        # ghi dòng cuối có thời gian tổng
+        # Write the last row with total time
         writer.writerow({'fold': '', 'parameter': '', 'test_MAE': '','test_RMSE': '', 'test_Pearson': '', 'test_Spearman': '','total_time': total_time})
 
     print('\n' + '='*50)

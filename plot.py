@@ -10,114 +10,100 @@ OUTPUT_CSV_FILE = 'MAE_PROTEIN_PREDICTIONS.csv'
 TARGET_COLUMN = 'RMSD' 
 SCALER_PKL_FILE = 'data/protein_scaler.pkl'
 
-# --------------------------------------------------------------------------
-## BƯỚC 1: ĐỌC DỮ LIỆU ĐẦU VÀO VÀ TÁCH TÍNH NĂNG (FEATURES)
-# --------------------------------------------------------------------------
+
 try:
-    # Đọc toàn bộ dữ liệu từ file CSV. 
-    # Vì dữ liệu bạn cung cấp không có index, nên dùng header=0 (dòng đầu là tên cột)
+    # Read input data
     data = pd.read_csv(INPUT_CSV_FILE)
     
     print(f"Đã đọc {len(data)} dòng dữ liệu từ file: {INPUT_CSV_FILE}")
     print(f"Các cột dữ liệu: {data.columns.tolist()}")
     X = data.drop(columns=[TARGET_COLUMN]) 
     
-    # Lấy cột Ground Truth (Y)
+    # Get ground truth
     Y_ground_truth = data[TARGET_COLUMN].copy() 
 
-    # Chuyển Features thành mảng numpy (thường cần cho mô hình ML)
+    # Change DataFrame to NumPy array for processing
     X_features = X.values 
     
-    # In thông tin kiểm tra
-    print(f"\nKích thước Features (X): {X_features.shape}")
-    print(f"Kích thước Ground Truth (Y): {Y_ground_truth.shape}")
+    # Print check information
+    print(f"\nFeature dimensions (X): {X_features.shape}")
+    print(f"Ground Truth dimensions (Y): {Y_ground_truth.shape}")
 
 except FileNotFoundError:
-    print(f"LỖI: Không tìm thấy file dữ liệu đầu vào '{INPUT_CSV_FILE}'. Vui lòng kiểm tra lại đường dẫn.")
+    print(f"ERROR: Cannot find input data file '{INPUT_CSV_FILE}'. Please check the path.")
     exit()
 except KeyError:
-    print(f"LỖI: Không tìm thấy cột target '{TARGET_COLUMN}' trong dữ liệu.")
+    print(f"ERROR: Target column '{TARGET_COLUMN}' not found in the data.")
     exit()
 try:
     with open(SCALER_PKL_FILE, 'rb') as f:
         scaler = pickle.load(f)
-    print(f"\nĐã tải đối tượng scaler thành công từ file: {SCALER_PKL_FILE}")
+    print(f"\nSuccessfully loaded scaler object from file: {SCALER_PKL_FILE}")
 
 except FileNotFoundError:
-    print(f"\nLỖI: Không tìm thấy file SCALER '{SCALER_PKL_FILE}'. Vui lòng kiểm tra lại đường dẫn.")
-    print("Bạn phải lưu đối tượng scaler từ quá trình huấn luyện để sử dụng cho dự đoán.")
+    print(f"\nERROR: Cannot find SCALER file '{SCALER_PKL_FILE}'. Please check the path.")
+    print("You must save the scaler object from the training process to use it for prediction.")
     exit()
 except Exception as e:
-    print(f"LỖI khi tải SCALER từ file PKL: {e}")
+    print(f"ERROR loading SCALER from PKL file: {e}")
     exit()
 
-# --------------------------------------------------------------------------
-## BƯỚC 2: TẢI MÔ HÌNH ĐÃ LƯU DƯỚI DẠNG .pkl
-# --------------------------------------------------------------------------
 try:
     with open(MODEL_PKL_FILE, 'rb') as file:
         model = pickle.load(file)
     
-    print(f"\nĐã tải mô hình thành công từ file: {MODEL_PKL_FILE}")
-    # print(f"Loại mô hình: {type(model)}") # Có thể kiểm tra loại mô hình nếu cần
+    print(f"\nSuccessfully loaded model from file: {MODEL_PKL_FILE}")
+    # print(f"Model type: {type(model)}") # You can check the model type if needed
 
 except FileNotFoundError:
-    print(f"LỖI: Không tìm thấy file mô hình '{MODEL_PKL_FILE}'. Vui lòng kiểm tra lại đường dẫn.")
+    print(f"ERROR: Cannot find model file '{MODEL_PKL_FILE}'. Please check the path.")
     exit()
 except Exception as e:
-    print(f"LỖI khi tải mô hình từ file PKL: {e}")
+    print(f"ERROR loading model from PKL file: {e}")
     exit()
 
-# --------------------------------------------------------------------------
-## BƯỚC 3: THỰC HIỆN DỰ ĐOÁN (PREDICTION)
-# --------------------------------------------------------------------------
-print("\nBắt đầu dự đoán...")
+print("\nStarting prediction...")
 
 try:
-    # 1. Đặt mô hình ở chế độ đánh giá (Rất quan trọng cho PyTorch)
+    # 1. Set the model to evaluation mode (Very important for PyTorch)
     model.eval() 
     
-    # 2. Scale dữ liệu đầu vào (Biến scaler đã được load ở bước 1.5)
+    # 2. Scale input data (The scaler variable was loaded in step 1.5)
     X_scaled_np = scaler.transform(X_features) 
     
-    # 3. Chuyển Features đã scale thành PyTorch Tensor
+    # 3. Convert scaled features to PyTorch Tensor
     X_tensor = torch.tensor(X_scaled_np, dtype=torch.float32)
     
-    # 4. Thực hiện dự đoán
+    # 4. Perform prediction
     with torch.no_grad():
-        # Gọi mô hình PyTorch, nó trả về y_pred và feat
+        # Call the PyTorch model, it returns y_pred and feat
         y_pred_tensor, _ = model(X_tensor) 
     
-    # 5. Chuyển kết quả về mảng Numpy để lưu vào Pandas DataFrame
+    # 5. Convert the result to a NumPy array to save into a Pandas DataFrame
     predictions = y_pred_tensor.cpu().numpy().flatten()
     
-    print(f"Dự đoán hoàn thành. Kích thước kết quả: {predictions.shape}")
+    print(f"Prediction completed. Result size: {predictions.shape}")
 
 except Exception as e:
-    print(f"LỖI khi thực hiện dự đoán PyTorch: {e}")
-    print("Vui lòng kiểm tra lại cấu trúc đầu vào và đầu ra của mô hình MLP.")
+    print(f"ERROR during PyTorch prediction: {e}")
+    print("Please check the input and output structure of the MLP model.")
     exit()
 
-# --------------------------------------------------------------------------
-## BƯỚC 4: LƯU KẾT QUẢ VÀO FILE CSV MỚI
-# --------------------------------------------------------------------------
 
-# Tạo DataFrame kết quả
+# Create results DataFrame
 results_df = pd.DataFrame({
     'Y_Ground_Truth': Y_ground_truth,
     'Prediction': predictions
 })
 
-# Thêm các cột Features ban đầu vào DataFrame kết quả để dễ dàng theo dõi
-# Điều này giúp bạn biết dự đoán và Ground Truth tương ứng với dữ liệu đầu vào nào
+# Add original feature columns to the results DataFrame for easier tracking
+# This helps you know which input data corresponds to the predictions and Ground Truth
 results_df = pd.concat([X, results_df], axis=1)
 
-# Lưu DataFrame kết quả sang file CSV
+# Save the results DataFrame to a CSV file
 results_df.to_csv(OUTPUT_CSV_FILE, index=False)
 
-print("\n---------------------------------------------------------")
-print(f"Hoàn tất! Kết quả dự đoán và Ground Truth đã được lưu vào file:")
-print(f"--> {OUTPUT_CSV_FILE}")
-print("---------------------------------------------------------")
+print(f"Done! Prediction results and Ground Truth have been saved to the file:")
+print(f"{OUTPUT_CSV_FILE}")
 
 print(results_df.head())
