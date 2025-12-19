@@ -1,27 +1,27 @@
 import React, { useState } from 'react';
 
 interface ProteinProperties {
-  f1_total_surface_area: number;
-  f2_non_polar_exposed_area: number;
-  f3_fractional_area_exposed_non_polar_residue: number;
-  f4_fractional_area_exposed_non_polar_part_residue: number;
-  f5_molecular_mass_weighted_exposed_area: number;
-  f6_average_deviation_from_standard_exposed_area: number;
-  f7_euclidian_distance: number;
-  f8_secondary_structure_penalty: number;
-  f9_spatial_distribution_constraints: number;
+  f1_total_surface_area: number | null;
+  f2_non_polar_exposed_area: number | null;
+  f3_fractional_area_exposed_non_polar_residue: number | null;
+  f4_fractional_area_exposed_non_polar_part_residue: number | null;
+  f5_molecular_mass_weighted_exposed_area: number | null;
+  f6_average_deviation_from_standard_exposed_area: number | null;
+  f7_euclidian_distance: number | null;
+  f8_secondary_structure_penalty: number | null;
+  f9_spatial_distribution_constraints: number | null;
 }
 
 const initialProperties: ProteinProperties = {
-  f1_total_surface_area: 0,
-  f2_non_polar_exposed_area: 0,
-  f3_fractional_area_exposed_non_polar_residue: 0,
-  f4_fractional_area_exposed_non_polar_part_residue: 0,
-  f5_molecular_mass_weighted_exposed_area: 0,
-  f6_average_deviation_from_standard_exposed_area: 0,
-  f7_euclidian_distance: 0,
-  f8_secondary_structure_penalty: 0,
-  f9_spatial_distribution_constraints: 0,
+  f1_total_surface_area: null,
+  f2_non_polar_exposed_area: null,
+  f3_fractional_area_exposed_non_polar_residue: null,
+  f4_fractional_area_exposed_non_polar_part_residue: null,
+  f5_molecular_mass_weighted_exposed_area: null,
+  f6_average_deviation_from_standard_exposed_area: null,
+  f7_euclidian_distance: null,
+  f8_secondary_structure_penalty: null,
+  f9_spatial_distribution_constraints: null,
 };
 
 const propertyLabels: Record<keyof ProteinProperties, string> = {
@@ -79,7 +79,7 @@ export const InputForm: React.FC<InputFormProps> = ({ onPredict } ) => {
     let hasError = false;
 
     (Object.keys(properties) as Array<keyof ProteinProperties>).forEach((key) => {
-      const isInvalid = properties[key] <= 0;
+      const isInvalid = properties[key]! <= 0;
       newErrors[key] = isInvalid;
       if (isInvalid) hasError = true;
     });
@@ -153,9 +153,9 @@ export const InputForm: React.FC<InputFormProps> = ({ onPredict } ) => {
                 type="number"
                 id={key}
                 name={key}
-                min={0.000001}
+                min={0}
                 step="any"
-                value={properties[key]}
+                value={properties[key] ? properties[key]!.toString() : ''}
                 onChange={handleChange}
                 className={`form-input ${errors[key] ? 'input-error' : ''}`}
                 required
