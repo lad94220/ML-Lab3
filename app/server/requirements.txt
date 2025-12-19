@@ -1,0 +1,5 @@
+torch
+uvircorn
+fastapi
+pandas
+numpy
