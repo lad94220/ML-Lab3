@@ -15,6 +15,7 @@
 2. **Navigate to the app folder**
    ```bash
    cd app
+   cd server
    ```
 
 3. **Install required dependencies**
